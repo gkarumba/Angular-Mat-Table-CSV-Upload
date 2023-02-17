@@ -1,6 +1,9 @@
 import { Component, ViewChild, OnInit } from '@angular/core';
 import { MatPaginator, MatTableDataSource } from '@angular/material';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
+import * as XLSX from 'xlsx';
+import { FormGroup, FormBuilder, FormArray } from "@angular/forms";
+
 
 @Component({
   selector: 'app-root',
@@ -11,15 +14,45 @@ export class AppComponent implements OnInit {
 
   dataSource = new MatTableDataSource<any>();
   @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
+  form: FormGroup = this.fb.group({});
+
+  constructor(private fb: FormBuilder) {
+
+    // this.form = fb.group({
+    //   selections: fb.array([])
+    // })
+  }
 
   ngOnInit(): void {
-    this.data = this.getData();
-    this.dataSource.data = this.data;
-    this.dataSource.paginator = this.paginator;
+    // this.data = this.getData();
+    // this.dataSource.data = this.data;
+  }
+
+  createForm(controls: any[]) {
+    for (const control of controls) {
+      this.form.addControl(
+        control,
+        this.fb.control('')
+      );
+    }
+  }
+
+  addNewAddressGroup() {
+    const add = this.form.get('selections') as FormArray;
+    add.push(this.fb.group({
+      selected: ['']
+    }))
   }
 
   data = [];
-  displayColumns: string[] = ['movie', 'year', 'director', 'role', 'notes'];
+  // displayColumns: string[] = ['movie', 'year', 'director', 'role', 'notes'];
+  displayColumns: string[] = []
+
+  loading: boolean = true;
+
+  public selectionList: any[] = [
+    'firstName','lastName','middleName','finalName'
+  ]
 
   private getData(): any {
     return [
@@ -96,4 +129,51 @@ export class AppComponent implements OnInit {
     moveItemInArray(this.displayColumns, fromIndex, toIndex);
   }
   
+  public uploadData(e: any) {
+    console.log(e.target.files[0]);
+    /* wire up file reader */
+    const target: DataTransfer = <DataTransfer>(<any>e.target);
+    if (target.files.length !== 1) {
+      throw new Error('Cannot use multiple files');
+    }
+    const reader: FileReader = new FileReader();
+    reader.readAsBinaryString(target.files[0]);
+    reader.onload = (e: any) => {
+      /* create workbook */
+      const binarystr: string = e.target.result;
+      const wb: XLSX.WorkBook = XLSX.read(binarystr, { type: 'binary' });
+
+      /* selected the first sheet */
+      const wsname: string = wb.SheetNames[0];
+      const ws: XLSX.WorkSheet = wb.Sheets[wsname];
+
+      /* save data */
+      const data = XLSX.utils.sheet_to_json(ws); // to get 2d array pass 2nd parameter as object {header: 1}
+      console.log(data); 
+      this.data = data;// Data will be logged in array format containing objects
+      this.dataSource.data = data;
+      this.displayColumns = Object.keys(data[0]);
+      this.dataSource.paginator = this.paginator;
+      this.loading = false;   
+      this.createForm(this.displayColumns)
+
+    };
+  }
+
+  submit() {
+    console.log('selectedValues',this.form.value)
+    let toChange = this.data;
+    let values = this.form.value;
+
+    toChange = toChange.map(el => {
+      const keys = Object.keys(el);
+      const newObj = {}
+      for (const key of keys) {
+          newObj[values[key]] = el[key];
+      }
+      return newObj;
+    });
+    console.log(toChange);
+  }
+
 }
