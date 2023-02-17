@@ -7,8 +7,8 @@ This is a test project to demonstrate uploading a csv file and mapping the colum
 ### Clone the repo
 
 ```shell
-git clone https://github.com/bryanforbes/intern-angular
-cd intern-angular
+git clone https://github.com/gkarumba/Angular-Mat-Table-CSV-Upload.git
+cd Angular-Mat-Table-CSV-Upload
 ```
 
 ### Install npm packages
